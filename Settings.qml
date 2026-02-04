@@ -14,6 +14,19 @@ NScrollView {
     property bool evtestInstalled: false
     property bool inInputGroup: false
 
+    property string selectedCatColor: {
+        let saved = pluginApi?.pluginSettings?.catColor
+        if (saved && saved.length > 0) return saved
+        return pluginApi?.manifest?.metadata?.defaultSettings?.catColor ?? "default"
+    }
+
+    readonly property var colorOptions: [
+        { key: "default",   label: "Default",   color: Color.mOnSurface },
+        { key: "primary",   label: "Primary",   color: Color.mPrimary },
+        { key: "secondary", label: "Secondary", color: Color.mSecondary },
+        { key: "tertiary",  label: "Tertiary",  color: Color.mTertiary },
+    ]
+
     property var selectedDevices: {
         let saved = pluginApi?.pluginSettings?.inputDevices
         if (saved && saved.length > 0) return saved
@@ -31,7 +44,7 @@ NScrollView {
         let list = root.selectedDevices.slice()
         let idx = list.indexOf(key)
         if (idx >= 0)
-            list.splice(idx, 1)``
+            list.splice(idx, 1)
         else
             list.push(key)
         root.selectedDevices = list
@@ -87,138 +100,151 @@ NScrollView {
     }
 
     ColumnLayout {
-        width: parent.width
-        spacing: Style.marginL
+        width: root.availableWidth
+        spacing: Style.marginS
 
-        NLabel {
-            label: "Requirements Check"
-            description: "Checks if evtest is installed and if the user is in the input group"
+        NHeader {
+            label: "Requirements"
         }
 
-        ColumnLayout {
+        NBox {
             Layout.fillWidth: true
-            spacing: Style.marginS
+            implicitHeight: reqContent.implicitHeight + Style.marginM * 2
 
-            RowLayout {
+            ColumnLayout {
+                id: reqContent
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: Style.marginM
                 spacing: Style.marginS
 
-                NIcon {
-                    icon: root.evtestInstalled ? "circle-check-filled" : "circle-x-filled"
-                    color: root.evtestInstalled ? Color.mPrimary : Color.mError
-                    pointSize: Style.fontSizeM
+                RowLayout {
+                    spacing: Style.marginS
+                    NIcon {
+                        icon: root.evtestInstalled ? "circle-check-filled" : "circle-x-filled"
+                        color: root.evtestInstalled ? Color.mPrimary : Color.mError
+                        pointSize: Style.fontSizeM
+                    }
+                    Text {
+                        text: root.evtestInstalled ? "evtest is installed" : "evtest is not installed"
+                        color: root.evtestInstalled ? Color.mPrimary : Color.mError
+                        font.pointSize: Style.fontSizeM
+                    }
                 }
 
-                Text {
-                    text: root.evtestInstalled ? "evtest is installed" : "evtest is not installed"
-                    color: root.evtestInstalled ? Color.mPrimary : Color.mError
-                    font.pointSize: Style.fontSizeM
-                }
-            }
-
-            RowLayout {
-                spacing: Style.marginS
-
-                NIcon {
-                    icon: root.inInputGroup ? "circle-check-filled" : "circle-x-filled"
-                    color: root.inInputGroup ? Color.mPrimary : Color.mError
-                    pointSize: Style.fontSizeM
-                }
-
-                Text {
-                    text: root.inInputGroup ? "User is in the input group" : "User is not in the input group"
-                    color: root.inInputGroup ? Color.mPrimary : Color.mError
-                    font.pointSize: Style.fontSizeM
+                RowLayout {
+                    spacing: Style.marginS
+                    NIcon {
+                        icon: root.inInputGroup ? "circle-check-filled" : "circle-x-filled"
+                        color: root.inInputGroup ? Color.mPrimary : Color.mError
+                        pointSize: Style.fontSizeM
+                    }
+                    Text {
+                        text: root.inInputGroup ? "User is in the input group" : "User is not in the input group"
+                        color: root.inInputGroup ? Color.mPrimary : Color.mError
+                        font.pointSize: Style.fontSizeM
+                    }
                 }
             }
         }
 
-        NLabel {
+        NHeader {
+            Layout.topMargin: Style.marginL
             label: "Input Devices"
-            description: "Select one or more input devices to listen for key events"
         }
 
-        ColumnLayout {
+        NBox {
             Layout.fillWidth: true
-            spacing: Style.marginXS
+            implicitHeight: devContent.implicitHeight + Style.marginM * 2
 
-            Repeater {
-                model: root.inputDevices
+            ColumnLayout {
+                id: devContent
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: Style.marginM
+                spacing: Style.marginS
 
-                Rectangle {
-                    required property var modelData
+                Repeater {
+                    model: root.inputDevices
 
-                    property bool isChecked: root.isSelected(modelData.key)
-                    property bool isHovered: mouseArea.containsMouse
+                    Rectangle {
+                        required property var modelData
 
-                    Layout.fillWidth: true
-                    implicitHeight: rowContent.implicitHeight + Style.marginS * 2
-                    radius: Style.iRadiusXS
-                    color: isHovered ? Color.mSurfaceContainer : "transparent"
+                        property bool isChecked: root.isSelected(modelData.key)
+                        property bool isHovered: mouseArea.containsMouse
 
-                    Behavior on color {
-                        ColorAnimation { duration: Style.animationFast }
-                    }
+                        Layout.fillWidth: true
+                        implicitHeight: rowContent.implicitHeight + Style.marginS * 2
+                        radius: Style.iRadiusXS
+                        color: isHovered ? Color.mSurfaceContainer : "transparent"
 
-                    MouseArea {
-                        id: mouseArea
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        hoverEnabled: true
-                        onClicked: root.toggleDevice(modelData.key)
-                    }
-
-                    RowLayout {
-                        id: rowContent
-                        anchors.fill: parent
-                        anchors.leftMargin: Style.marginS
-                        anchors.rightMargin: Style.marginS
-                        spacing: Style.marginL
-
-                        Rectangle {
-                            id: checkBox
-                            implicitWidth: Math.round(Style.baseWidgetSize * 0.7)
-                            implicitHeight: Math.round(Style.baseWidgetSize * 0.7)
-                            radius: Style.iRadiusXS
-                            color: isChecked ? Color.mPrimary : Color.mSurface
-                            border.color: isHovered ? Color.mPrimary : Color.mOutline
-                            border.width: Style.borderS
-
-                            Behavior on color {
-                                ColorAnimation { duration: Style.animationFast }
-                            }
-                            Behavior on border.color {
-                                ColorAnimation { duration: Style.animationFast }
-                            }
-
-                            NIcon {
-                                visible: isChecked
-                                anchors.centerIn: parent
-                                anchors.horizontalCenterOffset: -1
-                                icon: "check"
-                                color: Color.mOnPrimary
-                                pointSize: Math.max(Style.fontSizeXS, checkBox.implicitWidth * 0.5)
-                            }
+                        Behavior on color {
+                            ColorAnimation { duration: Style.animationFast }
                         }
 
-                        ColumnLayout {
-                            Layout.fillWidth: true
-                            spacing: 2
+                        MouseArea {
+                            id: mouseArea
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            hoverEnabled: true
+                            onClicked: root.toggleDevice(modelData.key)
+                        }
 
-                            Text {
-                                text: modelData.name
-                                color: Color.mOnSurface
-                                font.pointSize: Style.fontSizeM
-                                elide: Text.ElideRight
-                                Layout.fillWidth: true
+                        RowLayout {
+                            id: rowContent
+                            anchors.fill: parent
+                            anchors.leftMargin: Style.marginS
+                            anchors.rightMargin: Style.marginS
+                            spacing: Style.marginM
+
+                            Rectangle {
+                                id: checkBox
+                                implicitWidth: Math.round(Style.baseWidgetSize * 0.7)
+                                implicitHeight: Math.round(Style.baseWidgetSize * 0.7)
+                                radius: Style.iRadiusXS
+                                color: isChecked ? Color.mPrimary : Color.mSurface
+                                border.color: isHovered ? Color.mPrimary : Color.mOutline
+                                border.width: Style.borderS
+
+                                Behavior on color {
+                                    ColorAnimation { duration: Style.animationFast }
+                                }
+                                Behavior on border.color {
+                                    ColorAnimation { duration: Style.animationFast }
+                                }
+
+                                NIcon {
+                                    visible: isChecked
+                                    anchors.centerIn: parent
+                                    anchors.horizontalCenterOffset: -1
+                                    icon: "check"
+                                    color: Color.mOnPrimary
+                                    pointSize: Math.max(Style.fontSizeXS, checkBox.implicitWidth * 0.5)
+                                }
                             }
 
-                            Text {
-                                text: modelData.eventDev
-                                color: Color.mOnSurfaceVariant
-                                font.pointSize: Style.fontSizeS
-                                visible: text !== ""
-                                elide: Text.ElideRight
+                            ColumnLayout {
                                 Layout.fillWidth: true
+                                spacing: 2
+
+                                Text {
+                                    text: modelData.name
+                                    color: Color.mOnSurface
+                                    font.pointSize: Style.fontSizeM
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+
+                                Text {
+                                    text: modelData.eventDev
+                                    color: Color.mOnSurfaceVariant
+                                    font.pointSize: Style.fontSizeS
+                                    visible: text !== ""
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
                             }
                         }
                     }
@@ -226,52 +252,99 @@ NScrollView {
             }
         }
 
-        RowLayout {
+        NHeader {
+            Layout.topMargin: Style.marginL
+            label: "Cat Colour"
+        }
+
+        NBox {
+            id: colourBox
             Layout.fillWidth: true
-            spacing: Style.marginXS
+            implicitHeight: colourContent.implicitHeight + Style.marginM * 2
 
-            NIcon {
-                id: savedIcon
-                icon: "circle-check"
-                color: Color.mPrimary
-                pointSize: Style.fontSizeM
-                opacity: 0
+            property int circleSize: Math.round(Style.baseWidgetSize * 0.9)
+            property int columnCount: root.colorOptions.length
+            property real availableInner: width - Style.marginM * 2
+            property real columnWidth: columnCount > 0 ? availableInner / columnCount : 0
+
+            ColumnLayout {
+                id: colourContent
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: Style.marginM
+                spacing: 0
+
+                Row {
+                    id: colourRow
+                    Layout.fillWidth: true
+
+                    Repeater {
+                        model: root.colorOptions
+
+                        Item {
+                            required property var modelData
+                            required property int index
+
+                            width: colourBox.columnWidth
+                            height: colorCol.implicitHeight
+
+                            ColumnLayout {
+                                id: colorCol
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                spacing: Style.marginXS
+
+                                Rectangle {
+                                    id: colorCircle
+                                    property bool isSelected: root.selectedCatColor === modelData.key
+                                    property bool isHovered: circleMouseArea.containsMouse
+
+                                    Layout.alignment: Qt.AlignHCenter
+                                    implicitWidth: colourBox.circleSize
+                                    implicitHeight: implicitWidth
+                                    radius: width / 2
+                                    color: modelData.color
+                                    border.color: isSelected ? Color.mOnSurface : "transparent"
+                                    border.width: isSelected ? Style.borderS + 1 : 0
+                                    scale: isHovered ? 1.15 : 1.0
+
+                                    Behavior on scale {
+                                        NumberAnimation { duration: Style.animationFast; easing.type: Easing.OutCubic }
+                                    }
+                                    Behavior on border.color {
+                                        ColorAnimation { duration: Style.animationFast }
+                                    }
+
+                                    MouseArea {
+                                        id: circleMouseArea
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: root.selectedCatColor = modelData.key
+                                    }
+
+                                    NIcon {
+                                        anchors.centerIn: parent
+                                        icon: "check"
+                                        pointSize: Math.max(Style.fontSizeXS, colorCircle.implicitWidth * 0.4)
+                                        color: Color.mOnPrimary
+                                        visible: colorCircle.isSelected
+                                    }
+                                }
+
+                                Text {
+                                    Layout.alignment: Qt.AlignHCenter
+                                    text: modelData.label
+                                    color: Color.mOnSurfaceVariant
+                                    font.pointSize: Style.fontSizeS
+                                }
+                            }
+                        }
+                    }
+                }
             }
-
-            Text {
-                id: savedLabel
-                text: "Saved!"
-                color: Color.mPrimary
-                font.pointSize: Style.fontSizeM
-                font.weight: Font.DemiBold
-                opacity: 0
-            }
         }
 
-    }
-
-    
-
-    SequentialAnimation {
-        id: savedAnim
-
-        NumberAnimation {
-            targets: [savedIcon, savedLabel]
-            property: "opacity"
-            to: 1
-            duration: 150
-            easing.type: Easing.OutCubic
-        }
-
-        PauseAnimation { duration: 1500 }
-
-        NumberAnimation {
-            targets: [savedIcon, savedLabel]
-            property: "opacity"
-            to: 0
-            duration: 300
-            easing.type: Easing.InCubic
-        }
     }
 
     function saveSettings() {
@@ -280,8 +353,8 @@ NScrollView {
             return
         }
         pluginApi.pluginSettings.inputDevices = root.selectedDevices
+        pluginApi.pluginSettings.catColor = root.selectedCatColor
         pluginApi.saveSettings()
-        savedAnim.restart()
         Logger.i("SlowBongo", "Settings saved successfully")
     }
 }

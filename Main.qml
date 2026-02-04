@@ -28,6 +28,10 @@ Item {
         ?? pluginApi?.manifest?.metadata?.defaultSettings?.idleTimeout
         ?? 500
 
+    readonly property string catColor: pluginApi?.pluginSettings?.catColor
+        ?? pluginApi?.manifest?.metadata?.defaultSettings?.catColor
+        ?? "default"
+
     function onKeyPress() {
         if (root.paused) return;
         root.leftWasLast = !root.leftWasLast;

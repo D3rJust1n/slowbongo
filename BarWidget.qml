@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import Quickshell
 import qs.Commons
 import qs.Widgets
+import qs.Services.UI
 
 Item {
     id: root
@@ -35,6 +36,19 @@ Item {
 
     readonly property int catState: mainInstance?.catState ?? 0
     readonly property bool paused: mainInstance?.paused ?? false
+    readonly property string catColorKey: mainInstance?.catColor ?? "default"
+
+    function resolveColor(key) {
+        switch (key) {
+            case "primary":   return Color.mPrimary
+            case "secondary": return Color.mSecondary
+            case "tertiary":  return Color.mTertiary
+            case "error":     return Color.mError
+            default:          return Color.mOnSurface
+        }
+    }
+
+    readonly property color resolvedCatColor: resolveColor(catColorKey)
 
     FontLoader {
         id: bongoFont
@@ -56,10 +70,36 @@ Item {
             id: mouseArea
             anchors.fill: parent
             hoverEnabled: true
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
             cursorShape: Qt.PointingHandCursor
-            onClicked: {
-                if (root.mainInstance) {
-                    root.mainInstance.paused = !root.mainInstance.paused;
+            onClicked: mouse => {
+                if (mouse.button === Qt.RightButton) {
+                    PanelService.showContextMenu(contextMenu, root, screen);
+                } else {
+                    if (root.mainInstance) {
+                        root.mainInstance.paused = !root.mainInstance.paused;
+                    }
+                }
+            }
+        }
+
+        NPopupContextMenu {
+            id: contextMenu
+
+            model: [
+                {
+                    "label": I18n.tr("actions.widget-settings"),
+                    "action": "widget-settings",
+                    "icon": "settings"
+                },
+            ]
+
+            onTriggered: action => {
+                contextMenu.close();
+                PanelService.closeContextMenu(screen);
+
+                if (action === "widget-settings") {
+                    BarService.openPluginSettings(screen, pluginApi.manifest);
                 }
             }
         }
@@ -74,7 +114,7 @@ Item {
             font.pixelSize: root.capsuleHeight * 0.95
             // Shift to bottom of the bar
             y: parent.height * 0.8
-            color: Color.mOnSurface
+            color: root.resolvedCatColor
             text: root.glyphMap[root.catState] ?? "bc"
             visible: !root.paused
             renderType: Text.NativeRenderingzxczxczxczcccasd
@@ -84,7 +124,7 @@ Item {
             anchors.centerIn: parent
             icon: "player-pause-filled"
             pointSize: root.barFontSize
-            color: Color.mOnSurface
+            color: root.resolvedCatColor
             visible: root.paused
         }
     }

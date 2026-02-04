@@ -13,7 +13,8 @@
   "metadata": {
     "defaultSettings": {
       "inputDevice": "/dev/input/by-id/usb-ROYUAN_EPOMAKER_TH80_SE-event-kbd",
-      "idleTimeout": 150
+      "idleTimeout": 150,
+      "catColor": "default"
     }
   }
 }
