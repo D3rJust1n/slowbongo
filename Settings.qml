@@ -13,6 +13,7 @@ NScrollView {
 
     property bool evtestInstalled: false
     property bool inInputGroup: false
+    property string currentUser: ""
 
     property string selectedCatColor: {
         let saved = pluginApi?.pluginSettings?.catColor
@@ -52,7 +53,7 @@ NScrollView {
 
     Component.onCompleted: {
         evtestCheck.running = true
-        groupCheck.running = true
+        userCheck.running = true
         deviceListProcess.running = true
     }
 
@@ -60,15 +61,29 @@ NScrollView {
         id: evtestCheck
         command: ["which", "evtest"]
         onExited: function(exitCode, exitStatus) {
-            root.evtestInstalled = (exitCode === 0)
+            root.evtestInstalled = (exitCode == 0)
+        }
+    }
+
+    Process {
+        id: userCheck
+        command: ["id", "-un"]
+        stdout: SplitParser {
+            onRead: data => {
+                root.currentUser = data.trim()
+            }
+        }
+        onExited: function(exitCode, exitStatus) {
+            if (exitCode == 0 && root.currentUser.length > 0)
+                groupCheck.running = true
         }
     }
 
     Process {
         id: groupCheck
-        command: ["sh", "-c", "groups | tr ' ' '\\n' | grep -qx input"]
+        command: ["sh", "-c", "id -nG '" + root.currentUser + "' | tr ' ' '\\n' | grep -qx input"]
         onExited: function(exitCode, exitStatus) {
-            root.inInputGroup = (exitCode === 0)
+            root.inInputGroup = (exitCode == 0)
         }
     }
 
@@ -123,12 +138,12 @@ NScrollView {
                     spacing: Style.marginS
                     NIcon {
                         icon: root.evtestInstalled ? "circle-check-filled" : "circle-x-filled"
-                        color: root.evtestInstalled ? Color.mPrimary : Color.mError
+                        color: root.evtestInstalled ? "#4caf50" : Color.mError
                         pointSize: Style.fontSizeM
                     }
                     Text {
                         text: root.evtestInstalled ? "evtest is installed" : "evtest is not installed"
-                        color: root.evtestInstalled ? Color.mPrimary : Color.mError
+                        color: root.evtestInstalled ? "#4caf50" : Color.mError
                         font.pointSize: Style.fontSizeM
                     }
                 }
@@ -137,12 +152,12 @@ NScrollView {
                     spacing: Style.marginS
                     NIcon {
                         icon: root.inInputGroup ? "circle-check-filled" : "circle-x-filled"
-                        color: root.inInputGroup ? Color.mPrimary : Color.mError
+                        color: root.inInputGroup ? "#4caf50" : Color.mError
                         pointSize: Style.fontSizeM
                     }
                     Text {
                         text: root.inInputGroup ? "User is in the input group" : "User is not in the input group"
-                        color: root.inInputGroup ? Color.mPrimary : Color.mError
+                        color: root.inInputGroup ? "#4caf50" : Color.mError
                         font.pointSize: Style.fontSizeM
                     }
                 }
