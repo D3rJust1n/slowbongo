@@ -37,6 +37,8 @@ Item {
     readonly property int catState: mainInstance?.catState ?? 0
     readonly property bool paused: mainInstance?.paused ?? false
     readonly property string catColorKey: mainInstance?.catColor ?? "default"
+    readonly property bool showRainbowColor: mainInstance?.showRainbowColor ?? false
+    readonly property string rainbowColor: mainInstance?.currentRainbowColor ?? "#ff0000"
 
     function resolveColor(key) {
         switch (key) {
@@ -48,7 +50,20 @@ Item {
         }
     }
 
-    readonly property color resolvedCatColor: resolveColor(catColorKey)
+    readonly property color resolvedCatColor: showRainbowColor ? rainbowColor : resolveColor(catColorKey)
+
+    // Debug logging - disabled for performance
+    // onShowRainbowColorChanged: {
+    //     console.log("BarWidget: showRainbowColor = " + showRainbowColor)
+    // }
+
+    // onRainbowColorChanged: {
+    //     console.log("BarWidget: rainbowColor = " + rainbowColor)
+    // }
+
+    // onResolvedCatColorChanged: {
+    //     console.log("BarWidget: resolvedCatColor = " + resolvedCatColor)
+    // }
 
     FontLoader {
         id: bongoFont

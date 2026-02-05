@@ -2,11 +2,15 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.Commons
+import qs.Services.Media
 
 Item {
     id: root
 
     property var pluginApi: null
+
+    // Unique instance ID for CavaService registration
+    readonly property string cavaInstanceId: "plugin:slowbongo:" + Date.now() + Math.random()
 
     // 0 = idle (both paws up), 1 = left slap, 2 = right slap
     property int catState: 0
@@ -115,6 +119,18 @@ Item {
         }
     }
 
+    // Register with CavaService when pluginApi becomes available
+    onPluginApiChanged: {
+        if (pluginApi) {
+            CavaService.registerComponent(cavaInstanceId)
+            Logger.i("SlowBongo", "Registered with CavaService for audio detection")
+        }
+    }
+
+    Component.onDestruction: {
+        CavaService.unregisterComponent(cavaInstanceId)
+    }
+
     readonly property int idleTimeout: pluginApi?.pluginSettings?.idleTimeout
         ?? pluginApi?.manifest?.metadata?.defaultSettings?.idleTimeout
         ?? 500
@@ -130,6 +146,131 @@ Item {
     readonly property real catOffsetY: pluginApi?.pluginSettings?.catOffsetY
         ?? pluginApi?.manifest?.metadata?.defaultSettings?.catOffsetY
         ?? 0.0
+
+    readonly property bool raveMode: pluginApi?.pluginSettings?.raveMode
+        ?? pluginApi?.manifest?.metadata?.defaultSettings?.raveMode
+        ?? false
+
+    // Check if any music/audio is currently playing using CavaService
+    readonly property bool anyMusicPlaying: !CavaService.isIdle
+
+    // Rainbow color cycling for rave mode
+    property int rainbowIndex: 0
+    readonly property var rainbowColors: [
+        "#ff0000", // Red
+        "#ff7f00", // Orange
+        "#ffff00", // Yellow
+        "#00ff00", // Green
+        "#0000ff", // Blue
+        "#4b0082", // Indigo
+        "#9400d3"  // Violet
+    ]
+
+    // Cached audio intensity - recalculated only when CavaService.values changes
+    property real audioIntensity: 0
+
+    // Smoothed beat intensity for less jittery color changes
+    property real smoothedIntensity: 0
+    readonly property real beatThreshold: 0.25  // Lower threshold for more sensitivity
+
+    // Update smoothed intensity and detect beats
+    Connections {
+        target: CavaService
+        function onValuesChanged() {
+            // Early return if rave mode is disabled - skip all calculations
+            if (!root.useRaveColors) return
+
+            // Calculate audio intensity from bass and mid-range frequencies
+            if (!CavaService.values || CavaService.values.length === 0) {
+                root.audioIntensity = 0
+                return
+            }
+
+            // Weight bass (0-7) and mid-range (8-15) frequencies
+            let bassSum = 0
+            let midSum = 0
+            const bassCount = Math.min(8, CavaService.values.length)
+            const midCount = Math.min(16, CavaService.values.length)
+
+            // Get bass frequencies (bass drum, kick)
+            for (let i = 0; i < bassCount; i++) {
+                bassSum += CavaService.values[i] || 0
+            }
+
+            // Get mid-range frequencies (snare, vocals, melodic elements)
+            for (let i = 8; i < midCount; i++) {
+                midSum += CavaService.values[i] || 0
+            }
+
+            const bassAvg = bassSum / bassCount
+            const midAvg = midSum / Math.max(1, midCount - 8)
+
+            // Weight mid-range more heavily (70% mid, 30% bass) for more sensitivity
+            root.audioIntensity = (midAvg * 0.7) + (bassAvg * 0.3)
+
+            // Smooth the intensity with exponential moving average
+            const alpha = 0.3  // Smoothing factor (0-1, higher = more responsive)
+            root.smoothedIntensity = alpha * root.audioIntensity + (1 - alpha) * root.smoothedIntensity
+
+            // Change color when we detect a beat (intensity spike)
+            if (root.smoothedIntensity > root.beatThreshold) {
+                if (!beatCooldownTimer.running) {
+                    // Advance to next rainbow color
+                    root.rainbowIndex = (root.rainbowIndex + 1) % root.rainbowColors.length
+                    // Flash the rainbow color
+                    root.isFlashing = true
+                    flashTimer.restart()
+                    // Start cooldown to prevent rapid firing
+                    beatCooldownTimer.restart()
+                }
+            }
+        }
+    }
+
+    // Flash state - true when showing rainbow color, false when showing base color
+    property bool isFlashing: false
+
+    // Cooldown timer to prevent color changes from happening too rapidly
+    Timer {
+        id: beatCooldownTimer
+        interval: 200  // Minimum time between color changes (ms) - increased for performance
+        repeat: false
+    }
+
+    // Flash duration timer - how long to show the rainbow color before returning to base
+    Timer {
+        id: flashTimer
+        interval: 100  // Show rainbow color for 100ms
+        repeat: false
+        onTriggered: {
+            root.isFlashing = false
+        }
+    }
+
+    readonly property string currentRainbowColor: rainbowColors[rainbowIndex]
+
+    // Should we use rave mode colors?
+    readonly property bool useRaveColors: raveMode && anyMusicPlaying
+
+    // The actual color to display - flash rainbow on beat, otherwise show base color
+    readonly property bool showRainbowColor: useRaveColors && isFlashing
+
+    // Debug logging - disabled for performance
+    // onRaveModeChanged: {
+    //     Logger.i("SlowBongo", "Rave mode: " + raveMode)
+    // }
+
+    // onAnyMusicPlayingChanged: {
+    //     Logger.i("SlowBongo", "Music playing: " + anyMusicPlaying + " (CavaService.isIdle=" + CavaService.isIdle + ")")
+    // }
+
+    // onUseRaveColorsChanged: {
+    //     Logger.i("SlowBongo", "Use rave colors: " + useRaveColors + " (raveMode=" + raveMode + ", musicPlaying=" + anyMusicPlaying + ")")
+    // }
+
+    // onCurrentRainbowColorChanged: {
+    //     Logger.i("SlowBongo", "Rainbow color changed to: " + currentRainbowColor + " (beat detected, intensity=" + smoothedIntensity.toFixed(2) + ")")
+    // }
 
     function onKeyPress() {
         if (root.paused) return;

@@ -14,6 +14,7 @@ ColumnLayout {
     // Requirement check states
     property bool evtestInstalled: false
     property bool inInputGroup: false
+    property bool cavaInstalled: false
     property string currentUser: ""
 
     // Editable settings properties
@@ -43,6 +44,12 @@ ColumnLayout {
         return legacy ? [legacy] : []
     }
 
+    property bool editRaveMode: {
+        let saved = pluginApi?.pluginSettings?.raveMode
+        if (saved !== undefined && saved !== null) return saved
+        return pluginApi?.manifest?.metadata?.defaultSettings?.raveMode ?? false
+    }
+
     // Configuration data
     readonly property var colorOptions: [
         { key: "default",   label: "Default",   color: Color.mOnSurface },
@@ -69,6 +76,7 @@ ColumnLayout {
 
     Component.onCompleted: {
         evtestCheck.running = true
+        cavaCheck.running = true
         userCheck.running = true
         byIdListProcess.running = true
     }
@@ -78,6 +86,14 @@ ColumnLayout {
         command: ["which", "evtest"]
         onExited: function(exitCode, exitStatus) {
             root.evtestInstalled = (exitCode == 0)
+        }
+    }
+
+    Process {
+        id: cavaCheck
+        command: ["which", "cava"]
+        onExited: function(exitCode, exitStatus) {
+            root.cavaInstalled = (exitCode == 0)
         }
     }
 
@@ -230,6 +246,20 @@ ColumnLayout {
                 Text {
                     text: root.inInputGroup ? "User is in the input group" : "User is not in the input group"
                     color: root.inInputGroup ? "#4caf50" : "#c00202"
+                    font.pointSize: Style.fontSizeM
+                }
+            }
+
+            RowLayout {
+                spacing: Style.marginS
+                NIcon {
+                    icon: root.cavaInstalled ? "circle-check-filled" : "circle-x-filled"
+                    color: root.cavaInstalled ? "#4caf50" : "#c00202"
+                    pointSize: Style.fontSizeM
+                }
+                Text {
+                    text: root.cavaInstalled ? "cava is installed (for rave mode)" : "cava is not installed (rave mode won't work)"
+                    color: root.cavaInstalled ? "#4caf50" : "#c00202"
                     font.pointSize: Style.fontSizeM
                 }
             }
@@ -452,6 +482,75 @@ ColumnLayout {
         }
     }
 
+    // Rave Mode Section
+    NBox {
+        Layout.fillWidth: true
+        implicitHeight: raveModeContent.implicitHeight + Style.marginM * 2
+
+        RowLayout {
+            id: raveModeContent
+            anchors.fill: parent
+            anchors.margins: Style.marginM
+            spacing: Style.marginM
+
+            Rectangle {
+                id: raveModeCheckBox
+                property bool isHovered: raveModeMouseArea.containsMouse
+
+                implicitWidth: Math.round(Style.baseWidgetSize * 0.7)
+                implicitHeight: Math.round(Style.baseWidgetSize * 0.7)
+                radius: Style.iRadiusXS
+                color: root.editRaveMode ? Color.mPrimary : Color.mSurface
+                border.color: isHovered ? Color.mPrimary : Color.mOutline
+                border.width: Style.borderS
+
+                Behavior on color {
+                    ColorAnimation { duration: Style.animationFast }
+                }
+                Behavior on border.color {
+                    ColorAnimation { duration: Style.animationFast }
+                }
+
+                NIcon {
+                    visible: root.editRaveMode
+                    anchors.centerIn: parent
+                    anchors.horizontalCenterOffset: -1
+                    icon: "check"
+                    color: Color.mOnPrimary
+                    pointSize: Math.max(Style.fontSizeXS, raveModeCheckBox.implicitWidth * 0.5)
+                }
+
+                MouseArea {
+                    id: raveModeMouseArea
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    hoverEnabled: true
+                    onClicked: root.editRaveMode = !root.editRaveMode
+                }
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 2
+
+                Text {
+                    text: "Rave Mode"
+                    color: Color.mOnSurface
+                    font.pointSize: Style.fontSizeM
+                    font.weight: Font.DemiBold
+                }
+
+                Text {
+                    text: "Change colors to the beat when music is playing"
+                    color: Color.mOnSurfaceVariant
+                    font.pointSize: Style.fontSizeS
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                }
+            }
+        }
+    }
+
     NDivider {
         Layout.fillWidth: true
     }
@@ -613,6 +712,7 @@ ColumnLayout {
         pluginApi.pluginSettings.catColor = root.editCatColor
         pluginApi.pluginSettings.catSize = root.editCatSize
         pluginApi.pluginSettings.catOffsetY = root.editCatOffsetY
+        pluginApi.pluginSettings.raveMode = root.editRaveMode
         pluginApi.saveSettings()
         Logger.i("SlowBongo", "Settings saved successfully")
     }
