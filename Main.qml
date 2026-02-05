@@ -216,8 +216,8 @@ Item {
             const bassAvg = bassSum / bassCount
             const midAvg = midSum / Math.max(1, midCount - 8)
 
-            // Weight mid-range more heavily (70% mid, 30% bass) for more sensitivity
-            root.audioIntensity = (midAvg * 0.7) + (bassAvg * 0.3)
+            // Weight bass and low-mid more heavily (70% bass, 50% mid) for low-mid to low sensitivity
+            root.audioIntensity = (bassAvg * 0.8) + (midAvg * 0.6)
 
             // Smooth the intensity with exponential moving average
             const alpha = 0.4  // Smoothing factor (0-1, higher = more responsive)
