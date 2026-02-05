@@ -33,27 +33,85 @@ Item {
         return ["/dev/input/event0"]
     }
 
+    property var autoDetectedDevices: []
+
+    // Try by-id first for keyboard devices
     Process {
-        id: detectKbdProcess
+        id: detectByIdProcess
         command: ["sh", "-c", "for f in /dev/input/by-id/*-event-kbd; do [ -e \"$f\" ] && echo \"$f\"; done"]
         running: root.needsAutoDetect
-
-        property var detected: []
 
         stdout: SplitParser {
             onRead: data => {
                 const line = data.trim()
                 if (line.length > 0)
-                    detectKbdProcess.detected = detectKbdProcess.detected.concat([line])
+                    root.autoDetectedDevices = root.autoDetectedDevices.concat([line])
             }
         }
 
-        onExited: {
-            if (detected.length > 0 && root.pluginApi) {
-                root.pluginApi.pluginSettings.inputDevices = detected
-                root.pluginApi.saveSettings()
-                Logger.i("SlowBongo", "Auto-detected " + detected.length + " keyboard(s), saved to settings")
+        onExited: function(exitCode, exitStatus) {
+            // If no by-id keyboards found, try evtest
+            if (root.autoDetectedDevices.length === 0) {
+                detectEvtestProcess.running = true
+            } else {
+                saveDetectedDevices()
             }
+        }
+    }
+
+    // Fallback: use evtest to find keyboard devices
+    Process {
+        id: detectEvtestProcess
+        command: ["evtest"]
+        running: false
+
+        stdout: SplitParser {
+            onRead: data => {
+                const line = data.trim()
+                // Look for lines with "keyboard" or "keypad"
+                if (line.match(/keyboard|keypad/i)) {
+                    const match = line.match(/^(\/dev\/input\/event\d+):/)
+                    if (match) {
+                        root.autoDetectedDevices = root.autoDetectedDevices.concat([match[1]])
+                    }
+                }
+            }
+        }
+
+        onExited: function(exitCode, exitStatus) {
+            // If evtest found nothing, fall back to event3
+            if (root.autoDetectedDevices.length === 0) {
+                detectFallbackProcess.running = true
+            } else {
+                saveDetectedDevices()
+            }
+        }
+    }
+
+    // Final fallback: try /dev/input/event3 (common for laptop keyboards)
+    Process {
+        id: detectFallbackProcess
+        command: ["sh", "-c", "[ -c /dev/input/event3 ] && echo /dev/input/event3"]
+        running: false
+
+        stdout: SplitParser {
+            onRead: data => {
+                const line = data.trim()
+                if (line.length > 0)
+                    root.autoDetectedDevices = root.autoDetectedDevices.concat([line])
+            }
+        }
+
+        onExited: function(exitCode, exitStatus) {
+            saveDetectedDevices()
+        }
+    }
+
+    function saveDetectedDevices() {
+        if (root.autoDetectedDevices.length > 0 && root.pluginApi) {
+            root.pluginApi.pluginSettings.inputDevices = root.autoDetectedDevices
+            root.pluginApi.saveSettings()
+            Logger.i("SlowBongo", "Auto-detected " + root.autoDetectedDevices.length + " keyboard device(s), saved to settings")
         }
     }
 

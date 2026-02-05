@@ -54,7 +54,7 @@ NScrollView {
     Component.onCompleted: {
         evtestCheck.running = true
         userCheck.running = true
-        deviceListProcess.running = true
+        byIdListProcess.running = true
     }
 
     Process {
@@ -87,29 +87,84 @@ NScrollView {
         }
     }
 
+    // Try by-id first
     Process {
-        id: deviceListProcess
-        command: ["sh", "-c", "for f in /dev/input/by-id/*; do echo \"$(basename \"$f\")|$(readlink -f \"$f\")\"; done 2>/dev/null"]
+        id: byIdListProcess
+        command: ["sh", "-c", "[ -d /dev/input/by-id ] && for f in /dev/input/by-id/*-event-*; do [ -e \"$f\" ] && echo \"$(basename \"$f\")|$(readlink -f \"$f\")\"; done || true"]
+
         stdout: SplitParser {
             onRead: data => {
                 const line = data.trim()
                 if (line.length === 0) return
                 const parts = line.split("|")
-                if (parts.length < 2) return
-                const byIdName = parts[0]
+                if (parts.length !== 2) return
+                const name = parts[0]
                 const resolved = parts[1]
                 if (!resolved.startsWith("/dev/input/event")) return
+
                 const eventNum = resolved.replace(/.*\//, "")
-                let friendly = byIdName
+                let friendly = name
                     .replace(/^usb-/, "")
                     .replace(/-event-\w+$/, "")
                     .replace(/-if\d+$/, "")
                     .replace(/_/g, " ")
+
                 root.inputDevices = root.inputDevices.concat([{
-                    key: "/dev/input/by-id/" + byIdName,
+                    key: resolved,
                     name: friendly,
                     eventDev: eventNum
                 }])
+            }
+        }
+
+        onExited: function(exitCode, exitStatus) {
+            // Always try to get names from sysfs
+            sysfsListProcess.running = true
+        }
+    }
+
+    // Get device names from sysfs
+    Process {
+        id: sysfsListProcess
+        command: ["sh", "-c", "for f in /dev/input/event*; do [ -c \"$f\" ] && echo \"$f|$(cat /sys/class/input/$(basename $f)/device/name 2>/dev/null || basename $f)\"; done"]
+        running: false
+
+        stdout: SplitParser {
+            onRead: data => {
+                const line = data.trim()
+                if (line.length === 0) return
+                const parts = line.split("|")
+                if (parts.length !== 2) return
+                const device = parts[0]
+                const name = parts[1]
+                const eventNum = device.replace(/.*\//, "")
+
+                // Filter out non-keyboardy devices
+                const nameLower = name.toLowerCase()
+                const excludePatterns = [
+                    /power button/i,
+                    /sleep button/i,
+                    /lid switch/i,
+                    /video bus/i,
+                    /audio/i,
+                    /hdmi/i,
+                    /speaker/i,
+                    /headphone/i,
+                    /mic\b/i
+                ]
+
+                const shouldExclude = excludePatterns.some(pattern => pattern.test(name))
+                if (shouldExclude) return
+
+                // Check if we already have this device from by-id
+                const exists = root.inputDevices.some(d => d.key === device)
+                if (!exists) {
+                    root.inputDevices = root.inputDevices.concat([{
+                        key: device,
+                        name: name,
+                        eventDev: eventNum
+                    }])
+                }
             }
         }
     }
