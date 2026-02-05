@@ -1,6 +1,6 @@
 # Slow Bongo
 
-A bongo cat that sits in your bar and slaps when you type.
+A bongo cat that sits in your bar and slaps when you type. When i write QML i feel like im programming with my toes, this shit is not pretty.
 
 ## Features
 
