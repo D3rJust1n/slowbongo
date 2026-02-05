@@ -138,12 +138,12 @@ NScrollView {
                     spacing: Style.marginS
                     NIcon {
                         icon: root.evtestInstalled ? "circle-check-filled" : "circle-x-filled"
-                        color: root.evtestInstalled ? "#4caf50" : Color.mError
+                        color: root.evtestInstalled ? "#4caf50" : "#c00202"
                         pointSize: Style.fontSizeM
                     }
                     Text {
                         text: root.evtestInstalled ? "evtest is installed" : "evtest is not installed"
-                        color: root.evtestInstalled ? "#4caf50" : Color.mError
+                        color: root.evtestInstalled ? "#4caf50" : "#c00202"
                         font.pointSize: Style.fontSizeM
                     }
                 }
@@ -152,12 +152,12 @@ NScrollView {
                     spacing: Style.marginS
                     NIcon {
                         icon: root.inInputGroup ? "circle-check-filled" : "circle-x-filled"
-                        color: root.inInputGroup ? "#4caf50" : Color.mError
+                        color: root.inInputGroup ? "#4caf50" : "#c00202"
                         pointSize: Style.fontSizeM
                     }
                     Text {
                         text: root.inInputGroup ? "User is in the input group" : "User is not in the input group"
-                        color: root.inInputGroup ? "#4caf50" : Color.mError
+                        color: root.inInputGroup ? "#4caf50" : "#c00202"
                         font.pointSize: Style.fontSizeM
                     }
                 }
