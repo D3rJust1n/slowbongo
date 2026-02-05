@@ -151,6 +151,10 @@ Item {
         ?? pluginApi?.manifest?.metadata?.defaultSettings?.raveMode
         ?? false
 
+    readonly property bool tappyMode: pluginApi?.pluginSettings?.tappyMode
+        ?? pluginApi?.manifest?.metadata?.defaultSettings?.tappyMode
+        ?? false
+
     // Check if any music/audio is currently playing using CavaService
     readonly property bool anyMusicPlaying: !CavaService.isIdle
 
@@ -171,14 +175,17 @@ Item {
 
     // Smoothed beat intensity for less jittery color changes
     property real smoothedIntensity: 0
-    readonly property real beatThreshold: 0.25  // Lower threshold for more sensitivity
+    readonly property real beatThreshold: 0.20  // Lower threshold for more sensitivity
+
+    // Check if tappy mode should be active
+    readonly property bool useTappyMode: tappyMode && anyMusicPlaying
 
     // Update smoothed intensity and detect beats
     Connections {
         target: CavaService
         function onValuesChanged() {
-            // Early return if rave mode is disabled - skip all calculations
-            if (!root.useRaveColors) return
+            // Early return if both modes are disabled - skip all calculations
+            if (!root.useRaveColors && !root.useTappyMode) return
 
             // Calculate audio intensity from bass and mid-range frequencies
             if (!CavaService.values || CavaService.values.length === 0) {
@@ -209,17 +216,26 @@ Item {
             root.audioIntensity = (midAvg * 0.7) + (bassAvg * 0.3)
 
             // Smooth the intensity with exponential moving average
-            const alpha = 0.3  // Smoothing factor (0-1, higher = more responsive)
+            const alpha = 0.4  // Smoothing factor (0-1, higher = more responsive)
             root.smoothedIntensity = alpha * root.audioIntensity + (1 - alpha) * root.smoothedIntensity
 
-            // Change color when we detect a beat (intensity spike)
+            // Detect beat (intensity spike)
             if (root.smoothedIntensity > root.beatThreshold) {
                 if (!beatCooldownTimer.running) {
-                    // Advance to next rainbow color
-                    root.rainbowIndex = (root.rainbowIndex + 1) % root.rainbowColors.length
-                    // Flash the rainbow color
-                    root.isFlashing = true
-                    flashTimer.restart()
+                    // Rave mode: change color
+                    if (root.useRaveColors) {
+                        // Advance to next rainbow color
+                        root.rainbowIndex = (root.rainbowIndex + 1) % root.rainbowColors.length
+                        // Flash the rainbow color
+                        root.isFlashing = true
+                        flashTimer.restart()
+                    }
+
+                    // Tappy mode: make cat tap
+                    if (root.useTappyMode) {
+                        root.onKeyPress()
+                    }
+
                     // Start cooldown to prevent rapid firing
                     beatCooldownTimer.restart()
                 }
@@ -233,7 +249,7 @@ Item {
     // Cooldown timer to prevent color changes from happening too rapidly
     Timer {
         id: beatCooldownTimer
-        interval: 200  // Minimum time between color changes (ms) - increased for performance
+        interval: 150  // Minimum time between color changes (ms) - increased for performance
         repeat: false
     }
 

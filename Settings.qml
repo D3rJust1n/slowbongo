@@ -50,6 +50,12 @@ ColumnLayout {
         return pluginApi?.manifest?.metadata?.defaultSettings?.raveMode ?? false
     }
 
+    property bool editTappyMode: {
+        let saved = pluginApi?.pluginSettings?.tappyMode
+        if (saved !== undefined && saved !== null) return saved
+        return pluginApi?.manifest?.metadata?.defaultSettings?.tappyMode ?? false
+    }
+
     // Configuration data
     readonly property var colorOptions: [
         { key: "default",   label: "Default",   color: Color.mOnSurface },
@@ -551,6 +557,75 @@ ColumnLayout {
         }
     }
 
+    // Tappy Mode Section
+    NBox {
+        Layout.fillWidth: true
+        implicitHeight: tappyModeContent.implicitHeight + Style.marginM * 2
+
+        RowLayout {
+            id: tappyModeContent
+            anchors.fill: parent
+            anchors.margins: Style.marginM
+            spacing: Style.marginM
+
+            Rectangle {
+                id: tappyModeCheckBox
+                property bool isHovered: tappyModeMouseArea.containsMouse
+
+                implicitWidth: Math.round(Style.baseWidgetSize * 0.7)
+                implicitHeight: Math.round(Style.baseWidgetSize * 0.7)
+                radius: Style.iRadiusXS
+                color: root.editTappyMode ? Color.mPrimary : Color.mSurface
+                border.color: isHovered ? Color.mPrimary : Color.mOutline
+                border.width: Style.borderS
+
+                Behavior on color {
+                    ColorAnimation { duration: Style.animationFast }
+                }
+                Behavior on border.color {
+                    ColorAnimation { duration: Style.animationFast }
+                }
+
+                NIcon {
+                    visible: root.editTappyMode
+                    anchors.centerIn: parent
+                    anchors.horizontalCenterOffset: -1
+                    icon: "check"
+                    color: Color.mOnPrimary
+                    pointSize: Math.max(Style.fontSizeXS, tappyModeCheckBox.implicitWidth * 0.5)
+                }
+
+                MouseArea {
+                    id: tappyModeMouseArea
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    hoverEnabled: true
+                    onClicked: root.editTappyMode = !root.editTappyMode
+                }
+            }
+
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 2
+
+                Text {
+                    text: "Tappy Mode"
+                    color: Color.mOnSurface
+                    font.pointSize: Style.fontSizeM
+                    font.weight: Font.DemiBold
+                }
+
+                Text {
+                    text: "Make the cat tap along to the beat when music is playing"
+                    color: Color.mOnSurfaceVariant
+                    font.pointSize: Style.fontSizeS
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                }
+            }
+        }
+    }
+
     NDivider {
         Layout.fillWidth: true
     }
@@ -713,6 +788,7 @@ ColumnLayout {
         pluginApi.pluginSettings.catSize = root.editCatSize
         pluginApi.pluginSettings.catOffsetY = root.editCatOffsetY
         pluginApi.pluginSettings.raveMode = root.editRaveMode
+        pluginApi.pluginSettings.tappyMode = root.editTappyMode
         pluginApi.saveSettings()
         Logger.i("SlowBongo", "Settings saved successfully")
     }
