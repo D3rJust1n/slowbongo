@@ -8,7 +8,6 @@ A bongo cat that sits in your bar and slaps when you type. When i write QML i fe
 - **Audio Reactive**: Optional rave mode and tappy mode that react to music
 - **Customizable Appearance**: Choose from multiple color schemes and adjust size
 - **Font-Based Animation**: Uses a bongo cat font for easy rendering
-- **Auto-Detection**: Automatically detects keyboard input devices
 - **Bar Widget**: Compact widget that fits seamlessly in your Noctalia bar
 
 ## Installation
