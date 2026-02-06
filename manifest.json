@@ -2,13 +2,20 @@
   "id": "slowbongo",
   "name": "Slow Bongo",
   "version": "1.0.0",
+  "minNoctaliaVersion": "3.6.0",
   "author": "tui",
+  "official": false,
   "description": "A bongo cat that sits in your bar and slaps when you type.",
   "license": "MIT",
+  "repository": "https://github.com/tui/slowbongo",
+  "tags": ["Bar", "Fun", "Animation"],
   "entryPoints": {
     "main": "Main.qml",
     "barWidget": "BarWidget.qml",
     "settings": "Settings.qml"
+  },
+  "dependencies": {
+    "plugins": []
   },
   "metadata": {
     "defaultSettings": {
@@ -16,7 +23,9 @@
       "catColor": "default",
       "catSize": 1.0,
       "catOffsetY": 0.0,
-      "raveMode": false
+      "raveMode": false,
+      "tappyMode": false,
+      "useMprisFilter": false
     }
   }
 }

@@ -56,12 +56,22 @@ ColumnLayout {
         return pluginApi?.manifest?.metadata?.defaultSettings?.tappyMode ?? false
     }
 
+    property bool editUseMprisFilter: {
+        let saved = pluginApi?.pluginSettings?.useMprisFilter
+        if (saved !== undefined && saved !== null) return saved
+        return pluginApi?.manifest?.metadata?.defaultSettings?.useMprisFilter ?? false
+    }
+
+    // Status colors (with fallback for theme compatibility)
+    readonly property color statusSuccessColor: Color.mSuccess ?? Color.mPrimary
+    readonly property color statusErrorColor: Color.mError ?? "#c00202"
+
     // Configuration data
     readonly property var colorOptions: [
-        { key: "default",   label: "Default",   color: Color.mOnSurface },
-        { key: "primary",   label: "Primary",   color: Color.mPrimary },
-        { key: "secondary", label: "Secondary", color: Color.mSecondary },
-        { key: "tertiary",  label: "Tertiary",  color: Color.mTertiary },
+        { key: "default",   labelKey: "colors.default",   color: Color.mOnSurface },
+        { key: "primary",   labelKey: "colors.primary",   color: Color.mPrimary },
+        { key: "secondary", labelKey: "colors.secondary", color: Color.mSecondary },
+        { key: "tertiary",  labelKey: "colors.tertiary",  color: Color.mTertiary },
     ]
 
     property var inputDevices: []
@@ -90,6 +100,8 @@ ColumnLayout {
     Process {
         id: evtestCheck
         command: ["which", "evtest"]
+        stdout: StdioCollector {}
+        stderr: StdioCollector {}
         onExited: function(exitCode, exitStatus) {
             root.evtestInstalled = (exitCode == 0)
         }
@@ -98,6 +110,8 @@ ColumnLayout {
     Process {
         id: cavaCheck
         command: ["which", "cava"]
+        stdout: StdioCollector {}
+        stderr: StdioCollector {}
         onExited: function(exitCode, exitStatus) {
             root.cavaInstalled = (exitCode == 0)
         }
@@ -111,6 +125,7 @@ ColumnLayout {
                 root.currentUser = data.trim()
             }
         }
+        stderr: StdioCollector {}
         onExited: function(exitCode, exitStatus) {
             if (exitCode == 0 && root.currentUser.length > 0)
                 groupCheck.running = true
@@ -120,6 +135,8 @@ ColumnLayout {
     Process {
         id: groupCheck
         command: ["sh", "-c", "id -nG '" + root.currentUser + "' | tr ' ' '\\n' | grep -qx input"]
+        stdout: StdioCollector {}
+        stderr: StdioCollector {}
         onExited: function(exitCode, exitStatus) {
             root.inInputGroup = (exitCode == 0)
         }
@@ -154,6 +171,8 @@ ColumnLayout {
                 }])
             }
         }
+
+        stderr: StdioCollector {}
 
         onExited: function(exitCode, exitStatus) {
             // Always try to get names from sysfs
@@ -205,11 +224,13 @@ ColumnLayout {
                 }
             }
         }
+
+        stderr: StdioCollector {}
     }
 
     // Requirements Section
     Text {
-        text: "Requirements"
+        text: pluginApi?.tr("settings.requirements") || "Requirements"
         color: Color.mOnSurface
         font.family: Style.fontFamily
         font.pointSize: Style.fontSizeM
@@ -232,12 +253,14 @@ ColumnLayout {
                 spacing: Style.marginS
                 NIcon {
                     icon: root.evtestInstalled ? "circle-check-filled" : "circle-x-filled"
-                    color: root.evtestInstalled ? "#4caf50" : "#c00202"
+                    color: root.evtestInstalled ? root.statusSuccessColor : root.statusErrorColor
                     pointSize: Style.fontSizeM
                 }
                 Text {
-                    text: root.evtestInstalled ? "evtest is installed" : "evtest is not installed"
-                    color: root.evtestInstalled ? "#4caf50" : "#c00202"
+                    text: root.evtestInstalled
+                        ? (pluginApi?.tr("settings.evtest-installed") || "evtest is installed")
+                        : (pluginApi?.tr("settings.evtest-not-installed") || "evtest is not installed")
+                    color: root.evtestInstalled ? root.statusSuccessColor : root.statusErrorColor
                     font.pointSize: Style.fontSizeM
                 }
             }
@@ -246,12 +269,14 @@ ColumnLayout {
                 spacing: Style.marginS
                 NIcon {
                     icon: root.inInputGroup ? "circle-check-filled" : "circle-x-filled"
-                    color: root.inInputGroup ? "#4caf50" : "#c00202"
+                    color: root.inInputGroup ? root.statusSuccessColor : root.statusErrorColor
                     pointSize: Style.fontSizeM
                 }
                 Text {
-                    text: root.inInputGroup ? "User is in the input group" : "User is not in the input group"
-                    color: root.inInputGroup ? "#4caf50" : "#c00202"
+                    text: root.inInputGroup
+                        ? (pluginApi?.tr("settings.in-input-group") || "User is in the input group")
+                        : (pluginApi?.tr("settings.not-in-input-group") || "User is not in the input group")
+                    color: root.inInputGroup ? root.statusSuccessColor : root.statusErrorColor
                     font.pointSize: Style.fontSizeM
                 }
             }
@@ -260,12 +285,14 @@ ColumnLayout {
                 spacing: Style.marginS
                 NIcon {
                     icon: root.cavaInstalled ? "circle-check-filled" : "circle-x-filled"
-                    color: root.cavaInstalled ? "#4caf50" : "#c00202"
+                    color: root.cavaInstalled ? root.statusSuccessColor : root.statusErrorColor
                     pointSize: Style.fontSizeM
                 }
                 Text {
-                    text: root.cavaInstalled ? "cava is installed (for rave mode)" : "cava is not installed (rave mode won't work)"
-                    color: root.cavaInstalled ? "#4caf50" : "#c00202"
+                    text: root.cavaInstalled
+                        ? (pluginApi?.tr("settings.cava-installed") || "cava is installed (for rave mode)")
+                        : (pluginApi?.tr("settings.cava-not-installed") || "cava is not installed (rave mode won't work)")
+                    color: root.cavaInstalled ? root.statusSuccessColor : root.statusErrorColor
                     font.pointSize: Style.fontSizeM
                 }
             }
@@ -278,7 +305,7 @@ ColumnLayout {
 
     // Input Devices Section
     Text {
-        text: "Input Devices"
+        text: pluginApi?.tr("settings.input-devices") || "Input Devices"
         color: Color.mOnSurface
         font.family: Style.fontFamily
         font.pointSize: Style.fontSizeM
@@ -393,7 +420,7 @@ ColumnLayout {
 
     // Colours Section
     Text {
-        text: "Colours"
+        text: pluginApi?.tr("settings.colours") || "Colours"
         color: Color.mOnSurface
         font.family: Style.fontFamily
         font.pointSize: Style.fontSizeM
@@ -477,7 +504,7 @@ ColumnLayout {
 
                             Text {
                                 Layout.alignment: Qt.AlignHCenter
-                                text: modelData.label
+                                text: pluginApi?.tr(modelData.labelKey) || modelData.key.charAt(0).toUpperCase() + modelData.key.slice(1)
                                 color: Color.mOnSurfaceVariant
                                 font.pointSize: Style.fontSizeS
                             }
@@ -488,142 +515,31 @@ ColumnLayout {
         }
     }
 
-    // Rave Mode Section
-    NBox {
-        Layout.fillWidth: true
-        implicitHeight: raveModeContent.implicitHeight + Style.marginM * 2
-
-        RowLayout {
-            id: raveModeContent
-            anchors.fill: parent
-            anchors.margins: Style.marginM
-            spacing: Style.marginM
-
-            Rectangle {
-                id: raveModeCheckBox
-                property bool isHovered: raveModeMouseArea.containsMouse
-
-                implicitWidth: Math.round(Style.baseWidgetSize * 0.7)
-                implicitHeight: Math.round(Style.baseWidgetSize * 0.7)
-                radius: Style.iRadiusXS
-                color: root.editRaveMode ? Color.mPrimary : Color.mSurface
-                border.color: isHovered ? Color.mPrimary : Color.mOutline
-                border.width: Style.borderS
-
-                Behavior on color {
-                    ColorAnimation { duration: Style.animationFast }
-                }
-                Behavior on border.color {
-                    ColorAnimation { duration: Style.animationFast }
-                }
-
-                NIcon {
-                    visible: root.editRaveMode
-                    anchors.centerIn: parent
-                    anchors.horizontalCenterOffset: -1
-                    icon: "check"
-                    color: Color.mOnPrimary
-                    pointSize: Math.max(Style.fontSizeXS, raveModeCheckBox.implicitWidth * 0.5)
-                }
-
-                MouseArea {
-                    id: raveModeMouseArea
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    hoverEnabled: true
-                    onClicked: root.editRaveMode = !root.editRaveMode
-                }
-            }
-
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 2
-
-                Text {
-                    text: "Rave Mode"
-                    color: Color.mOnSurface
-                    font.pointSize: Style.fontSizeM
-                    font.weight: Font.DemiBold
-                }
-
-                Text {
-                    text: "Change colors to the beat when music is playing"
-                    color: Color.mOnSurfaceVariant
-                    font.pointSize: Style.fontSizeS
-                    Layout.fillWidth: true
-                    wrapMode: Text.WordWrap
-                }
-            }
-        }
+    // Rave Mode
+    NToggle {
+        label: pluginApi?.tr("settings.rave-mode") || "Rave Mode"
+        description: pluginApi?.tr("settings.rave-mode-desc") || "Change colors to the beat when music is playing"
+        checked: root.editRaveMode
+        onToggled: checked => root.editRaveMode = checked
+        defaultValue: pluginApi?.manifest?.metadata?.defaultSettings?.raveMode ?? false
     }
 
-    // Tappy Mode Section
-    NBox {
-        Layout.fillWidth: true
-        implicitHeight: tappyModeContent.implicitHeight + Style.marginM * 2
+    // Tappy Mode
+    NToggle {
+        label: pluginApi?.tr("settings.tappy-mode") || "Tappy Mode"
+        description: pluginApi?.tr("settings.tappy-mode-desc") || "Make the cat tap along to the beat when music is playing"
+        checked: root.editTappyMode
+        onToggled: checked => root.editTappyMode = checked
+        defaultValue: pluginApi?.manifest?.metadata?.defaultSettings?.tappyMode ?? false
+    }
 
-        RowLayout {
-            id: tappyModeContent
-            anchors.fill: parent
-            anchors.margins: Style.marginM
-            spacing: Style.marginM
-
-            Rectangle {
-                id: tappyModeCheckBox
-                property bool isHovered: tappyModeMouseArea.containsMouse
-
-                implicitWidth: Math.round(Style.baseWidgetSize * 0.7)
-                implicitHeight: Math.round(Style.baseWidgetSize * 0.7)
-                radius: Style.iRadiusXS
-                color: root.editTappyMode ? Color.mPrimary : Color.mSurface
-                border.color: isHovered ? Color.mPrimary : Color.mOutline
-                border.width: Style.borderS
-
-                Behavior on color {
-                    ColorAnimation { duration: Style.animationFast }
-                }
-                Behavior on border.color {
-                    ColorAnimation { duration: Style.animationFast }
-                }
-
-                NIcon {
-                    visible: root.editTappyMode
-                    anchors.centerIn: parent
-                    anchors.horizontalCenterOffset: -1
-                    icon: "check"
-                    color: Color.mOnPrimary
-                    pointSize: Math.max(Style.fontSizeXS, tappyModeCheckBox.implicitWidth * 0.5)
-                }
-
-                MouseArea {
-                    id: tappyModeMouseArea
-                    anchors.fill: parent
-                    cursorShape: Qt.PointingHandCursor
-                    hoverEnabled: true
-                    onClicked: root.editTappyMode = !root.editTappyMode
-                }
-            }
-
-            ColumnLayout {
-                Layout.fillWidth: true
-                spacing: 2
-
-                Text {
-                    text: "Tappy Mode"
-                    color: Color.mOnSurface
-                    font.pointSize: Style.fontSizeM
-                    font.weight: Font.DemiBold
-                }
-
-                Text {
-                    text: "Make the cat tap along to the beat when music is playing"
-                    color: Color.mOnSurfaceVariant
-                    font.pointSize: Style.fontSizeS
-                    Layout.fillWidth: true
-                    wrapMode: Text.WordWrap
-                }
-            }
-        }
+    // MPRIS Filtering
+    NToggle {
+        label: pluginApi?.tr("settings.mpris-filter") || "MPRIS Filtering"
+        description: pluginApi?.tr("settings.mpris-filter-desc") || "Only react to audio when a non-blacklisted media player is playing (uses NoctalisShell audio blacklist)"
+        checked: root.editUseMprisFilter
+        onToggled: checked => root.editUseMprisFilter = checked
+        defaultValue: pluginApi?.manifest?.metadata?.defaultSettings?.useMprisFilter ?? false
     }
 
     NDivider {
@@ -632,7 +548,7 @@ ColumnLayout {
 
     // Cat Size Section
     Text {
-        text: "Cat Size"
+        text: pluginApi?.tr("settings.cat-size") || "Cat Size"
         color: Color.mOnSurface
         font.family: Style.fontFamily
         font.pointSize: Style.fontSizeM
@@ -650,7 +566,7 @@ ColumnLayout {
             spacing: Style.marginM
 
             Text {
-                text: "Size:"
+                text: pluginApi?.tr("settings.size-label") || "Size:"
                 color: Color.mOnSurface
                 font.pointSize: Style.fontSizeM
             }
@@ -704,7 +620,7 @@ ColumnLayout {
 
     // Vertical Position Section
     Text {
-        text: "Vertical Position"
+        text: pluginApi?.tr("settings.vertical-position") || "Vertical Position"
         color: Color.mOnSurface
         font.family: Style.fontFamily
         font.pointSize: Style.fontSizeM
@@ -722,7 +638,7 @@ ColumnLayout {
             spacing: Style.marginM
 
             Text {
-                text: "Y Offset:"
+                text: pluginApi?.tr("settings.y-offset-label") || "Y Offset:"
                 color: Color.mOnSurface
                 font.pointSize: Style.fontSizeM
             }
@@ -776,7 +692,7 @@ ColumnLayout {
 
     function saveSettings() {
         if (!pluginApi) {
-            Logger.e("SlowBongo", "Cannot save settings: pluginApi is null")
+            Logger.e("Slow Bongo", "Cannot save settings: pluginApi is null")
             return
         }
         pluginApi.pluginSettings.inputDevices = root.editInputDevices
@@ -785,7 +701,8 @@ ColumnLayout {
         pluginApi.pluginSettings.catOffsetY = root.editCatOffsetY
         pluginApi.pluginSettings.raveMode = root.editRaveMode
         pluginApi.pluginSettings.tappyMode = root.editTappyMode
+        pluginApi.pluginSettings.useMprisFilter = root.editUseMprisFilter
         pluginApi.saveSettings()
-        Logger.i("SlowBongo", "Settings saved successfully")
+        Logger.i("Slow Bongo", "Settings saved successfully")
     }
 }
