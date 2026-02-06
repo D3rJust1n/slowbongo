@@ -1,4 +1,5 @@
-# Slow Bongo
+# Slow Bongo 
+![Picture of a cute lil bongocatto](https://raw.githubusercontent.com/tuibird/slowbongo/refs/heads/main/slowbongo.png)
 
 A bongo cat that sits in your bar and slaps when you type. When i write QML i feel like im programming with my toes, this shit is not pretty.
 
