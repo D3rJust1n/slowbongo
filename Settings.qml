@@ -32,7 +32,7 @@ ColumnLayout {
     property real editCatOffsetY: {
         let saved = pluginApi?.pluginSettings?.catOffsetY
         if (saved !== undefined && saved !== null) return saved
-        return pluginApi?.manifest?.metadata?.defaultSettings?.catOffsetY ?? 0.0
+        return pluginApi?.manifest?.metadata?.defaultSettings?.catOffsetY ?? 0.11
     }
 
     property var editInputDevices: {
@@ -553,6 +553,7 @@ ColumnLayout {
         from: 0.5
         to: 1.5
         stepSize: 0.01
+        text: Math.round(root.editCatSize * 100) + "%"
         onMoved: value => root.editCatSize = value
     }
 
@@ -561,9 +562,10 @@ ColumnLayout {
         Layout.fillWidth: true
         label: pluginApi?.tr("settings.vertical-position") || "Vertical Position"
         value: root.editCatOffsetY
-        from: -0.5
-        to: 0.5
+        from: -0.39
+        to: 0.61
         stepSize: 0.01
+        text: { let v = -(root.editCatOffsetY - 0.11); return (v > 0 ? "+" : v === 0 ? "" : "") + v.toFixed(2) }
         onMoved: value => root.editCatOffsetY = value
     }
 
