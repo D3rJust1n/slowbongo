@@ -62,7 +62,7 @@ ColumnLayout {
     }
 
     // Status colors (with fallback for theme compatibility)
-    readonly property color statusSuccessColor: Color.mSuccess ?? Color.mPrimary
+    readonly property color statusSuccessColor: Color.mPrimary
     readonly property color statusErrorColor: Color.mError ?? "#c00202"
 
     // Configuration data
@@ -335,7 +335,7 @@ ColumnLayout {
                     Layout.fillWidth: true
                     implicitHeight: rowContent.implicitHeight + Style.marginS * 2
                     radius: Style.iRadiusXS
-                    color: isHovered ? Color.mSurfaceContainer : "transparent"
+                    color: isHovered ? Color.mSurfaceVariant : "transparent"
 
                     Behavior on color {
                         ColorAnimation { duration: Style.animationFast }
