@@ -1,7 +1,7 @@
 # Slow Bongo 
 ![Picture of a cute lil bongocatto](https://raw.githubusercontent.com/tuibird/slowbongo/refs/heads/main/slowbongo.png)
 
-A bongo cat that sits in your bar and slaps when you type. When i write QML i feel like im programming with my toes, this shit is not pretty.
+A bongo cat that sits in your bar and slaps when you type. This is very early days, there will be bugs.
 
 ## Features
 
@@ -35,11 +35,7 @@ The plugin automatically detects keyboard input devices on first run. You can ma
 
 ### Colors
 
-Choose from four color schemes:
-- **Default**: Uses the default on-surface color
-- **Primary**: Uses your theme's primary color
-- **Secondary**: Uses your theme's secondary color
-- **Tertiary**: Uses your theme's tertiary color
+The colours are all pulled from your current Noctalia colourscheme.
 
 ### Rave Mode
 
@@ -106,13 +102,6 @@ When enabled, the cat taps along to the beat when music is playing instead of on
    ```
 
 3. Make sure at least one input device is selected in the settings panel.
-
-### Rave mode or tappy mode not working
-
-Ensure `cava` is installed and the CavaService is running in your Noctalia shell:
-```bash
-which cava
-```
 
 ## Technical Details
 
