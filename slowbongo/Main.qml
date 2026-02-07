@@ -80,6 +80,7 @@ Item {
     Connections {
         target: CavaService
         function onValuesChanged() {
+            if (root.paused) return;
             if (!root.useRaveColors && !root.useTappyMode) return;
 
             if (!CavaService.values || CavaService.values.length === 0) {
