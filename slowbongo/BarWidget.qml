@@ -31,13 +31,16 @@ Item {
     readonly property real catSizeVertical: catSize * 0.50
     readonly property real activeCatSize: isBarVertical ? catSizeVertical : catSizeHorizontal
 
-    // Glyph map: b = left paw up, d = left paw down, c = right paw up, a = right paw down, e+f = sleep
+    // Glyph map: b = left paw up, d = left paw down, c = right paw up, a = right paw down, e+f = sleep, g+h = blink
     readonly property var glyphMap: ["bc", "dc", "ba"]  // [idle, leftSlap, rightSlap]
     readonly property string sleepGlyph: "ef"
+    readonly property string blinkGlyph: "gh"
 
     readonly property int catState: mainInstance?.catState ?? 0
     readonly property bool paused: mainInstance?.paused ?? false
+    readonly property bool waiting: mainInstance?.waiting ?? false
     readonly property string catColorKey: mainInstance?.catColor ?? "default"
+    readonly property bool blinking: mainInstance?.blinking ?? false
     readonly property bool showRainbowColor: mainInstance?.showRainbowColor ?? false
     readonly property string rainbowColor: mainInstance?.currentRainbowColor ?? "#ff0000"
 
@@ -89,7 +92,7 @@ Item {
             font.pixelSize: root.capsuleHeight * root.activeCatSize
             font.weight: Font.Thin
             color: mouseArea.containsMouse ? Color.mOnHover : root.resolvedCatColor
-            text: root.paused ? root.sleepGlyph : (root.glyphMap[root.catState] ?? "bc")
+            text: (root.paused || root.waiting) ? root.sleepGlyph : (root.blinking ? root.blinkGlyph : (root.glyphMap[root.catState] ?? "bc"))
             visible: true
         }
 
@@ -100,7 +103,7 @@ Item {
             property real catX: catText.x
             property real catY: catText.y
             property real catW: catText.width
-            property bool sleeping: root.paused
+            property bool sleeping: root.paused || root.waiting
 
             readonly property real baseScale: 0.28
             readonly property real scaleStep: 0.07

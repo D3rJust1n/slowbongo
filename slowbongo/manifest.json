@@ -1,7 +1,7 @@
 {
   "id": "slowbongo",
   "name": "Slow Bongo",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "minNoctaliaVersion": "3.6.0",
   "author": "tui",
   "official": false,
@@ -24,6 +24,7 @@
   "metadata": {
     "defaultSettings": {
       "idleTimeout": 150,
+      "waitingTimeout": 30000,
       "catColor": "default",
       "catSize": 1.0,
       "catOffsetY": 0.0,

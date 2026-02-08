@@ -15,6 +15,8 @@ Item {
     property int catState: 0  // 0 = idle (both paws up), 1 = left slap, 2 = right slap
     property bool leftWasLast: false  // Track which paw slapped last to alternate
     property bool paused: false
+    property bool waiting: false
+    property bool blinking: false
 
     // === INSTANCE IDENTIFICATION ===
     readonly property string cavaInstanceId: "plugin:slowbongo:" + Date.now() + Math.random()
@@ -54,6 +56,7 @@ Item {
 
     // === SETTINGS (from pluginApi) ===
     readonly property int idleTimeout: pluginApi?.pluginSettings?.idleTimeout ?? pluginApi?.manifest?.metadata?.defaultSettings?.idleTimeout ?? 500
+    readonly property int waitingTimeout: pluginApi?.pluginSettings?.waitingTimeout ?? pluginApi?.manifest?.metadata?.defaultSettings?.waitingTimeout ?? 5000
     readonly property string catColor: pluginApi?.pluginSettings?.catColor ?? pluginApi?.manifest?.metadata?.defaultSettings?.catColor ?? "default"
     readonly property real catSize: pluginApi?.pluginSettings?.catSize ?? pluginApi?.manifest?.metadata?.defaultSettings?.catSize ?? 1.0
     readonly property real catOffsetY: pluginApi?.pluginSettings?.catOffsetY ?? pluginApi?.manifest?.metadata?.defaultSettings?.catOffsetY ?? 0.0
@@ -139,15 +142,28 @@ Item {
 
     function onKeyPress() {
         if (root.paused) return;
+        root.waiting = false;
         root.leftWasLast = !root.leftWasLast;
         root.catState = root.leftWasLast ? 1 : 2;
         idleTimer.restart();
+        waitingTimer.restart();
     }
 
     onPausedChanged: {
         if (root.paused) {
             idleTimer.stop();
+            waitingTimer.stop();
+            root.waiting = false;
+            root.blinking = false;
             root.catState = 0;
+        } else {
+            waitingTimer.restart();
+        }
+    }
+
+    onWaitingChanged: {
+        if (root.waiting) {
+            root.blinking = false;
         }
     }
 
@@ -156,6 +172,55 @@ Item {
         interval: root.idleTimeout
         repeat: false
         onTriggered: root.catState = 0
+    }
+
+    Timer {
+        id: waitingTimer
+        interval: root.waitingTimeout
+        repeat: false
+        onTriggered: root.waiting = true
+    }
+
+    Timer {
+        id: blinkIntervalTimer
+        interval: 6000 + Math.random() * 8000
+        repeat: true
+        running: !root.paused && !root.waiting
+        onTriggered: {
+            interval = 6000 + Math.random() * 8000;
+            if (Math.random() < 0.5) {
+                root.blinking = true;
+                blinkDurationTimer.start();
+            } else {
+                root.blinkFlutterCount = 0;
+                root.blinking = true;
+                flutterTimer.start();
+            }
+        }
+    }
+
+    property int blinkFlutterCount: 0
+
+    Timer {
+        id: blinkDurationTimer
+        interval: 450
+        repeat: false
+        onTriggered: root.blinking = false
+    }
+
+    Timer {
+        id: flutterTimer
+        interval: 120
+        repeat: false
+        onTriggered: {
+            root.blinkFlutterCount++;
+            root.blinking = !root.blinking;
+            if (root.blinkFlutterCount < 4) {
+                flutterTimer.start();
+            } else {
+                root.blinking = false;
+            }
+        }
     }
 
     Repeater {
@@ -181,11 +246,10 @@ Item {
                     Logger.w("Slow Bongo", "evtest (" + modelData + ") exited with code " + exitCode);
 
                     if (exitCode !== 0) {
-                        ToastService.show({
-                            title: pluginApi?.tr("toast.evtest-error") || "SlowBongo",
-                            message: pluginApi?.tr("toast.evtest-error-desc") || "Keyboard monitoring stopped. Restarting...",
-                            timeout: 3000
-                        });
+                        ToastService.showWarning(
+                            root.pluginApi?.tr("toast.evtest-error") ?? "SlowBongo",
+                            root.pluginApi?.tr("toast.evtest-error-desc") ?? "Keyboard monitoring stopped. Restarting..."
+                        );
                     }
 
                     restartTimer.start();
